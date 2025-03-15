@@ -5,26 +5,19 @@ from torch.optim import Adam
 from torchvision.datasets.mnist import MNIST
 from torch.utils.data import DataLoader
 from transformer_block import VisionTransformer
-from train_config import Train_Config
-from transformer_config import Config
+from transformer_config import Config as cfg
 from tqdm import tqdm
 
-from visualizer import visualize_batch, visualize_predictions
+from visualizer import visualize_batch, visualize_predictions,log_metrics
 
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 def train_model():
-#  d_model = Train_Config.d_model
-#  n_classes = Train_Config.n_classes
-  img_size = Train_Config.img_size
-#  patch_size = Train_Config.patch_size
-#  n_channels = Train_Config.n_channels
-#  n_heads = Train_Config.n_heads
-#  n_layers = Train_Config.n_layers
-  batch_size = Train_Config.batch_size
-  epochs = Train_Config.epochs
-  alpha = Train_Config.alpha
+  img_size = (cfg.img_size, cfg.img_size)
+  batch_size = cfg.batch_size
+  epochs = cfg.epochs
+  alpha = cfg.alpha
 
   transform = T.Compose([
     T.Resize(img_size),
@@ -46,14 +39,14 @@ def train_model():
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print("Using device: ", device, f"({torch.cuda.get_device_name(device)})" if torch.cuda.is_available() else "")
 
-  transformer = VisionTransformer(Config).to(device)
+  transformer = VisionTransformer(cfg).to(device)
 
   optimizer = Adam(transformer.parameters(), lr=alpha)
 
   scheduler = CosineAnnealingLR(
     optimizer,
     T_max = epochs * len(train_loader),
-    eta_min = alpha * 0.001 #min learning rate
+    eta_min = alpha * cfg.eta_min_scale #min learning rate
   )
 
   criterion = nn.CrossEntropyLoss()
@@ -71,7 +64,8 @@ def train_model():
       loss = criterion(outputs, labels)
       loss.backward()
       optimizer.step()
-      scheduler.step()
+      if cfg.has_scheduler:
+        scheduler.step()
 
       training_loss += loss.item()
 
@@ -81,7 +75,7 @@ def train_model():
     print(f'Epoch {epoch + 1}/{epochs} loss: {training_loss  / len(train_loader) :.3f}')
 
     visualize_predictions(transformer, train_loader, num_images = 8, epoch = epoch + 1)
-
+    log_metrics(epoch, i, loss.item(), optimizer.param_groups[0]["lr"])
   correct = 0
   total = 0
 

@@ -19,9 +19,9 @@ def visualize_batch(dataloader, num_images = 5):
         plt.axis('off')
     
     plt.tight_layout()
-    plt.show()
+    plt.close()
 
-def visualize_predictions(model, dataloader, num_images = 5, epoch = None, save_dir = './plots'):
+def visualize_predictions(model, dataloader, num_images = 8, epoch = None, save_dir = './plots'):
     #set to eval
     model.eval()
 
@@ -49,7 +49,12 @@ def visualize_predictions(model, dataloader, num_images = 5, epoch = None, save_
 
     if epoch is not None:
         import os
-        os.makedirs('results', exist_ok = True)
-        plt.savefig
-    plt.show()
+        os.makedirs('logs', exist_ok = True)
+        plt.savefig(f'logs/predictions_epoch_{epoch}.png')
+
+    plt.close()
         
+
+def log_metrics(epoch, batch_idx, loss, lr, filename = 'logs/training_log.txt'):
+    with open(filename, 'a') as f:
+        f.write(f"Epoch {epoch}, Batch {batch_idx}, Loss: {loss:.4f}, LR: {lr:.6f}\n")

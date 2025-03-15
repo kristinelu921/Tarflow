@@ -4,3 +4,5 @@ datasets/
 results/
 *.pyc
 .vscode/
+*.txt
+!requirements.txt
