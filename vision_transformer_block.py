@@ -76,6 +76,11 @@ class PositionalEncoding(nn.Module):
         #?? It just gets added in, how does model differentiate which part is from position and which is the actual weights?
 
 class AttentionHead(nn.Module):
+    """
+    Input: Embeddings: (bsize patch dmodel)
+    Output: Attention output: (bsize patch dmodel)
+    Performs one attention head
+    """
     def __init__(self, cfg: Config):
         super().__init__()
         
@@ -86,14 +91,14 @@ class AttentionHead(nn.Module):
         self.cfg = cfg
         self.register_buffer("IGNORE", torch.tensor(-float('inf')))
 
-    def forward(self, normalized_resid_pre):  #bsize patch dmodel (embeddings)
+    def forward(self, embeddings):  #bsize patch dmodel (embeddings)
         """
         Takes in embeddings: (bsize patch dmodel)
         """
         # Calculate query, key and value vectors
-        Q = self.query(normalized_resid_pre)  #bsize patch dmodel -> bsize patch dhead
-        K = self.key(normalized_resid_pre) #bsize patch dmodel -> bsize patch dhead
-        V = self.value(normalized_resid_pre) #bsize patch dmodel -> bsize patch dhead
+        Q = self.query(embeddings)  #bsize patch dmodel -> bsize patch dhead
+        K = self.key(embeddings) #bsize patch dmodel -> bsize patch dhead
+        V = self.value(embeddings) #bsize patch dmodel -> bsize patch dhead
 
         # Calculate attention scores, then scale and mask, and apply softmax to get probabilities
         attn_scores = Q @ K.transpose(-1, -2) # -> bsize patch_q patch_k
@@ -122,6 +127,11 @@ class AttentionHead(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
+    """
+    Input: Embeddings: (bsize patch dmodel)
+    Output: Attention output: (bsize patch dmodel)
+    Performs multi-head attention
+    """
     def __init__(self, cfg):
         super().__init__()
         self.d_model = cfg.d_model
@@ -140,6 +150,11 @@ class MultiHeadAttention(nn.Module):
         return out
 
 class TransformerEncoder(nn.Module):
+    """
+    Input: Embeddings: (bsize patch dmodel)
+    Output: Encoded Embeddings: (bsize patch dmodel)
+    Performs one transformer encoder layer
+    """
     def __init__(self, cfg: Config):
         super().__init__()
         self.d_model = cfg.d_model
@@ -166,36 +181,35 @@ class TransformerEncoder(nn.Module):
         return out
 
 class VisionTransformer(nn.Module):
+    """
+    Input: Images: (bsize, channels, height, width)
+    Output: Predictions: (bsize, n_classes)
+    Gets predictions for a batch of images
+    """
     def __init__(self, cfg):
         super().__init__()
-        self.img_size = cfg.img_size
-        self.patch_size = cfg.patch_size
-        self.n_channels = cfg.n_channels
-        self.max_seq_length = cfg.max_seq_length
-        self.d_model = cfg.d_model
-        self.layer_norm_eps = cfg.layer_norm_eps
-        self.r_mlp = cfg.r_mlp
-        self.n_heads = cfg.n_heads
-        self.d_head = cfg.d_head
-        self.n_layers = cfg.n_layers
-        self.n_classes = cfg.n_classes
 
-        assert self.img_size % self.patch_size == 0  #assume working with square patches
-        assert self.d_model % self.n_heads == 0
+        cfg.mask = True
+
+        assert cfg.img_size % cfg.patch_size == 0  #assume working with square patches
+        assert cfg.d_model % cfg.n_heads == 0
 
         self.patch_embedding = PatchEmbed(cfg)
         self.positional_encoding = PositionalEncoding(cfg)
-        self.transformer_encoder = nn.Sequential(*[TransformerEncoder(cfg) for _ in range(self.n_layers)])
+        self.transformer_encoder = nn.Sequential(*[TransformerEncoder(cfg) for _ in range(cfg.n_layers)])
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.d_model, self.n_classes),
+            nn.Linear(cfg.d_model, cfg.n_classes),
             nn.Softmax(dim = -1)
         )
 
+        self.alpha = nn.Parameter(torch.ones(1, 1, cfg.d_model))
+        self.mu = nn.Parameter(torch.zeros(1, 1, cfg.d_model))
+
     def forward(self, images):
         #print(images)
-        x = self.patch_embedding(images)
-        x = self.positional_encoding(x)
-        x = self.transformer_encoder(x)
-        x = self.classifier(x[:, 0])
+        x = self.patch_embedding(images) #batch_size, num_patches, d_model
+        x = self.positional_encoding(x) #batch_size, num_patches + 1, d_model
+        x = self.transformer_encoder(x) #batch_size, num_patches + 1, d_model
+        x = self.classifier(x[:, 0]) #batch_size, n_classes
         return x

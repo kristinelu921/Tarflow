@@ -4,7 +4,7 @@ import torchvision.transforms as T
 from torch.optim import Adam
 from torchvision.datasets.mnist import MNIST
 from torch.utils.data import DataLoader
-from transformer_block import VisionTransformer
+from vision_transformer_block import VisionTransformer
 from transformer_config import Config as cfg
 from tqdm import tqdm
 

@@ -1,9 +1,9 @@
 class Config:
-    dataset = "mnist"
-    img_size = 28
-    patch_size = 4
-    n_channels = 1
-    dataset_size = 60000
+    dataset = "imagenet"
+    img_size = 224
+    patch_size = 16
+    n_channels = 3
+    dataset_size = 1281167
 
 
     #patch embed
@@ -14,7 +14,7 @@ class Config:
     max_seq_length = num_patches + 1
 
     #ViT
-    d_model: int = 512
+    d_model: int = 32
     debug: bool = True
     layer_norm_eps: float = 1e-5
     init_range: float = 0.02
@@ -27,7 +27,7 @@ class Config:
     d_head = d_model//n_heads
 
     #Training
-    epochs = 5
+    epochs = 3
     mask = True
     has_scheduler = True
     batch_size = 1000
@@ -39,7 +39,7 @@ class Config:
     num_warmup_steps = dataset_size//(batch_size*5) #1 epoch
     total_training_steps = epochs*(dataset_size//batch_size)
     lr_min = 1e-4
-    lr_max = 1e-3
+    lr_max = 5e-4
 
 
     #tarflow
@@ -56,5 +56,3 @@ class Config:
 
     #guidance
     guidance_on = True
-
-    
