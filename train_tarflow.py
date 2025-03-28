@@ -11,8 +11,6 @@ import matplotlib.pyplot as plt
 from visualizer import visualize_batch, visualize_predictions,log_metrics, plot_loss_curve
 
 from tarflow_transformer_block import Tarflow
-from tarflow_transformer_block_2 import Tarflow as Tarflow_2
-from tarflow_transformer_block_2 import Config as Tarflow_2_cfg
 
 from noise_adaptations import add_noise as add_noise
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -162,4 +160,4 @@ def cosine_scheduler_with_warmup(cfg, optimizer):
     
 
 if __name__ == "__main__":
-  train_model(Tarflow_2(cfg), cfg)
+  train_model(Tarflow(cfg), cfg)
